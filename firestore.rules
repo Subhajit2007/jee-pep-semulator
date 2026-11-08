@@ -1,0 +1,141 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTrackerLog(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.dayNumber is int && data.dayNumber >= 1 && data.dayNumber <= 100 &&
+             data.date is string && data.date.size() >= 8 && data.date.size() <= 16 &&
+             data.totalStudyHours is number && data.totalStudyHours >= 0 && data.totalStudyHours <= 24 &&
+             data.pyqsSolved is int && data.pyqsSolved >= 0 && data.pyqsSolved <= 2000 &&
+             (!('physicsHours' in data) || (data.physicsHours is number && data.physicsHours >= 0 && data.physicsHours <= 24)) &&
+             (!('chemistryHours' in data) || (data.chemistryHours is number && data.chemistryHours >= 0 && data.chemistryHours <= 24)) &&
+             (!('mathsHours' in data) || (data.mathsHours is number && data.mathsHours >= 0 && data.mathsHours <= 24)) &&
+             (!('examMarks' in data) || (data.examMarks is number && data.examMarks >= -100 && data.examMarks <= 360)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000));
+    }
+
+    function isValidPlannerProgress(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.completedTopicIds is list && data.completedTopicIds.size() <= 500 &&
+             (data.completedTopicIds.size() == 0 || data.completedTopicIds[0] is string);
+    }
+
+    function isValidExamResult(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.examTitle is string && data.examTitle.size() > 0 && data.examTitle.size() <= 100 &&
+             data.totalQuestions is int && data.totalQuestions >= 1 && data.totalQuestions <= 200 &&
+             data.attemptedCount is int && data.attemptedCount >= 0 && data.attemptedCount <= data.totalQuestions &&
+             data.timeLimitMinutes is int && data.timeLimitMinutes >= 1 && data.timeLimitMinutes <= 360 &&
+             data.timeTakenSeconds is int && data.timeTakenSeconds >= 0 && data.timeTakenSeconds <= 21600 &&
+             (!('nvtRange' in data) || (data.nvtRange is string && data.nvtRange.size() <= 50)) &&
+             (!('answersSummary' in data) || (data.answersSummary is string && data.answersSummary.size() <= 10000));
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Tracker Logs Subcollection
+      match /trackerLogs/{logId} {
+        allow get, list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(logId) &&
+                         request.resource.data.userId == userId &&
+                         request.resource.data.keys().hasAll(['userId', 'dayNumber', 'date', 'totalStudyHours', 'pyqsSolved', 'createdAt', 'updatedAt']) &&
+                         request.resource.data.createdAt is timestamp &&
+                         request.resource.data.createdAt <= request.time &&
+                         request.resource.data.updatedAt is timestamp &&
+                         request.resource.data.updatedAt <= request.time &&
+                         isValidTrackerLog(request.resource.data);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(logId) &&
+                         request.resource.data.userId == resource.data.userId &&
+                         request.resource.data.createdAt == resource.data.createdAt &&
+                         request.resource.data.updatedAt is timestamp &&
+                         request.resource.data.updatedAt <= request.time &&
+                         isValidTrackerLog(request.resource.data) &&
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                           'dayNumber', 'date', 'totalStudyHours', 'pyqsSolved',
+                           'physicsHours', 'chemistryHours', 'mathsHours', 'examMarks',
+                           'notes', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(logId);
+      }
+
+      // Planner Progress Subcollection
+      match /plannerProgress/{progressId} {
+        allow get, list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(progressId) &&
+                         request.resource.data.userId == userId &&
+                         request.resource.data.keys().hasAll(['userId', 'completedTopicIds', 'updatedAt']) &&
+                         request.resource.data.updatedAt is timestamp &&
+                         request.resource.data.updatedAt <= request.time &&
+                         isValidPlannerProgress(request.resource.data);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(progressId) &&
+                         request.resource.data.userId == resource.data.userId &&
+                         request.resource.data.updatedAt is timestamp &&
+                         request.resource.data.updatedAt <= request.time &&
+                         isValidPlannerProgress(request.resource.data) &&
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                           'completedTopicIds', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(progressId);
+      }
+
+      // Exam Results Subcollection
+      match /examResults/{resultId} {
+        allow get, list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(resultId) &&
+                         request.resource.data.userId == userId &&
+                         request.resource.data.keys().hasAll(['userId', 'examTitle', 'totalQuestions', 'attemptedCount', 'timeLimitMinutes', 'timeTakenSeconds', 'createdAt', 'updatedAt']) &&
+                         request.resource.data.createdAt is timestamp &&
+                         request.resource.data.createdAt <= request.time &&
+                         request.resource.data.updatedAt is timestamp &&
+                         request.resource.data.updatedAt <= request.time &&
+                         isValidExamResult(request.resource.data);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(resultId) &&
+                         request.resource.data.userId == resource.data.userId &&
+                         request.resource.data.createdAt == resource.data.createdAt &&
+                         request.resource.data.updatedAt is timestamp &&
+                         request.resource.data.updatedAt <= request.time &&
+                         isValidExamResult(request.resource.data) &&
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                           'examTitle', 'totalQuestions', 'attemptedCount',
+                           'timeLimitMinutes', 'timeTakenSeconds', 'nvtRange',
+                           'answersSummary', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(resultId);
+      }
+    }
+  }
+}

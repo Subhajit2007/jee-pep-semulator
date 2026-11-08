@@ -1,0 +1,147 @@
+{
+  "entities": {
+    "TrackerLog": {
+      "title": "TrackerLog",
+      "description": "Daily study progress log for the 100-day challenge",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "dayNumber": {
+          "type": "integer",
+          "description": "Day number from 1 to 100"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date formatted as YYYY-MM-DD"
+        },
+        "totalStudyHours": {
+          "type": "number",
+          "description": "Total study hours"
+        },
+        "pyqsSolved": {
+          "type": "integer",
+          "description": "Previous year questions solved"
+        },
+        "physicsHours": {
+          "type": "number",
+          "description": "Hours spent on Physics"
+        },
+        "chemistryHours": {
+          "type": "number",
+          "description": "Hours spent on Chemistry"
+        },
+        "mathsHours": {
+          "type": "number",
+          "description": "Hours spent on Mathematics"
+        },
+        "examMarks": {
+          "type": "number",
+          "description": "Mock test marks scored if taken"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes or reflections"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        }
+      },
+      "required": ["userId", "dayNumber", "date", "totalStudyHours", "pyqsSolved", "createdAt", "updatedAt"]
+    },
+    "PlannerProgress": {
+      "title": "PlannerProgress",
+      "description": "Saved completed topic IDs for the 70-day syllabus planner",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "completedTopicIds": {
+          "type": "array",
+          "description": "List of completed topic IDs across Physics, Chemistry, Maths"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of update"
+        }
+      },
+      "required": ["userId", "completedTopicIds", "updatedAt"]
+    },
+    "ExamResult": {
+      "title": "ExamResult",
+      "description": "OMR Exam Simulator attempt result",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "examTitle": {
+          "type": "string",
+          "description": "Title or subject of exam"
+        },
+        "totalQuestions": {
+          "type": "integer",
+          "description": "Total question count"
+        },
+        "attemptedCount": {
+          "type": "integer",
+          "description": "Number of attempted questions"
+        },
+        "timeLimitMinutes": {
+          "type": "integer",
+          "description": "Time limit in minutes"
+        },
+        "timeTakenSeconds": {
+          "type": "integer",
+          "description": "Actual time taken in seconds"
+        },
+        "nvtRange": {
+          "type": "string",
+          "description": "Range of NVT questions (e.g. 21-25)"
+        },
+        "answersSummary": {
+          "type": "string",
+          "description": "Summary string or JSON of recorded answers"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of test submission"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of record update"
+        }
+      },
+      "required": ["userId", "examTitle", "totalQuestions", "attemptedCount", "timeLimitMinutes", "timeTakenSeconds", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/trackerLogs/{logId}": {
+      "schema": "TrackerLog",
+      "description": "Daily logged study tracker entry"
+    },
+    "/users/{userId}/plannerProgress/{progressId}": {
+      "schema": "PlannerProgress",
+      "description": "Syllabus planner topic completion state"
+    },
+    "/users/{userId}/examResults/{resultId}": {
+      "schema": "ExamResult",
+      "description": "Saved OMR exam simulation result"
+    }
+  }
+}

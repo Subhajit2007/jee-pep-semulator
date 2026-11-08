@@ -1,0 +1,6 @@
+{
+  "name": "JEE Prep",
+  "description": "Comprehensive Ultimate JEE Prep & Exam Simulator with 100-Day Tracker, 70-Day Syllabus Planner, and OMR Exam Simulator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
